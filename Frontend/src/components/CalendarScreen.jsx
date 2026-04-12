@@ -6,44 +6,77 @@ import { Bell, CalendarDays, Trash2, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function CalendarScreen() {
-  const [dates, setDates] = useState([]);
-  const [notes, setNotes] = useState({});
-  const [notificationStatus, setNotificationStatus] = useState('default');
-
-  // Load saved dates on mount
-  useEffect(() => {
+  const [dates, setDates] = useState(() => {
     try {
       const saved = localStorage.getItem('workout_dates');
       if (saved) {
-        // Convert ISO strings back to Date objects
         const parsed = JSON.parse(saved).map(d => new Date(d));
-        // Filter out very old dates to keep storage clean
         const now = new Date();
         now.setHours(0,0,0,0);
-        const validDates = parsed.filter(d => d >= now);
-        setDates(validDates);
+        return parsed.filter(d => d >= now);
       }
-
+    } catch(e) {}
+    return [];
+  });
+  
+  const [notes, setNotes] = useState(() => {
+    try {
       const savedNotes = localStorage.getItem('workout_notes');
-      if (savedNotes) {
-        setNotes(JSON.parse(savedNotes));
-      }
-      
-      if ("Notification" in window) {
-        setNotificationStatus(Notification.permission);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+      if (savedNotes) return JSON.parse(savedNotes);
+    } catch(e) {}
+    return {};
+  });
+  
+  const [notificationStatus, setNotificationStatus] = useState(() => {
+    if ("Notification" in window) return Notification.permission;
+    return 'default';
+  });
 
-  // Sync back to local storage whenever dates change
+  // Sync back to local storage and backend whenever dates change
   useEffect(() => {
     localStorage.setItem('workout_dates', JSON.stringify(dates));
+    
+    const syncDatesToBackend = async () => {
+      try {
+        const userProfile = JSON.parse(localStorage.getItem('user_profile'));
+        if (userProfile && userProfile.email) {
+          // ensure dates exist
+          if (!dates) return;
+          await fetch('http://localhost:8000/auth/update-profile', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: userProfile.email,
+                workout_dates: dates.map(d => d.toISOString())
+              })
+          });
+        }
+      } catch (e) { console.error("Failed to sync dates", e); }
+    };
+    if (dates && dates.length >= 0) syncDatesToBackend();
   }, [dates]);
 
   useEffect(() => {
     localStorage.setItem('workout_notes', JSON.stringify(notes));
+    
+    const syncNotesToBackend = async () => {
+      try {
+        const userProfile = JSON.parse(localStorage.getItem('user_profile'));
+        if (userProfile && userProfile.email) {
+          // ensure notes exist
+          if (!notes) return;
+          await fetch('http://localhost:8000/auth/update-profile', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: userProfile.email,
+                workout_notes: notes
+              })
+          });
+        }
+      } catch (e) { console.error("Failed to sync notes", e); }
+    };
+    if (notes) syncNotesToBackend();
   }, [notes]);
 
   const updateNote = (date, text) => {
@@ -91,7 +124,7 @@ export function CalendarScreen() {
         <Card className="border-border/40 shadow-sm h-fit">
           <CardHeader className="pb-4">
              <CardTitle className="flex items-center gap-2 text-lg">
-                <CalendarDays size={20} className="text-[#1D9E75]" />
+                <CalendarDays size={20} className="text-brand" />
                 Select Dates
              </CardTitle>
           </CardHeader>
@@ -118,7 +151,7 @@ export function CalendarScreen() {
           <Card className="border-border/40 shadow-sm bg-neutral-950 text-white">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Bell size={20} className={notificationStatus === 'granted' ? 'text-[#1D9E75]' : 'text-yellow-400'} />
+                <Bell size={20} className={notificationStatus === 'granted' ? 'text-brand' : 'text-yellow-400'} />
                 Reminders
               </CardTitle>
               <CardDescription className="text-neutral-400">
@@ -127,9 +160,9 @@ export function CalendarScreen() {
             </CardHeader>
             <CardContent>
               {notificationStatus === 'granted' ? (
-                <div className="bg-[#1D9E75]/20 text-[#1D9E75] p-3 rounded-lg text-sm font-medium border border-[#1D9E75]/30 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#1D9E75] animate-pulse" />
-                  Notifications are enabled
+                <div className="bg-brand/20 text-brand p-3 rounded-lg text-sm font-medium border border-brand/30 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+                  Notifications Active
                 </div>
               ) : notificationStatus === 'denied' ? (
                 <div className="text-sm text-red-400 flex items-center gap-2 bg-red-400/10 p-3 rounded-lg">
@@ -138,7 +171,7 @@ export function CalendarScreen() {
               ) : (
                 <Button 
                   onClick={requestNotifications}
-                  className="w-full bg-[#1D9E75] hover:bg-[#15805e] text-white"
+                  className="w-full bg-brand hover:brightness-90 text-white"
                 >
                   Enable Permissions
                 </Button>
@@ -179,10 +212,10 @@ export function CalendarScreen() {
                       </div>
                       <input 
                         type="text" 
-                        placeholder="Add notes for this workout (e.g. Legs & Core)..."
                         value={notes[date.toDateString()] || ''}
                         onChange={(e) => updateNote(date, e.target.value)}
-                        className="w-full bg-transparent border-b border-dashed border-neutral-300 focus:border-[#1D9E75] outline-none text-sm px-1 py-1.5 transition-colors placeholder:text-neutral-400 text-neutral-700 mt-1"
+                        placeholder="Add a workout note..."
+                        className="w-full bg-transparent border-b border-dashed border-neutral-300 focus:border-brand outline-none text-sm px-1 py-1.5 transition-colors placeholder:text-neutral-400 text-neutral-700 mt-1"
                         maxLength={100}
                       />
                     </div>

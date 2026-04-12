@@ -116,7 +116,7 @@ export function LandingPage({
           </Badge>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-neutral-900 leading-[1.1] tracking-tight">
-            Perfect Your Form <span className="text-[#1D9E75]">Instantly.</span>
+            Perfect Your Form <span className="text-brand">Instantly.</span>
           </h1>
 
           <p className="text-lg text-muted-foreground mb-10 leading-relaxed max-w-xl">

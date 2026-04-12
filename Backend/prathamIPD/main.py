@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import base64
 import json
+from auth import router as auth_router # Import the new router
 
 # FastAPI is a backend framework,
 # websockets enable real time streaming of data between client and server
@@ -22,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 
 def decode_base64_frame(data):
     img_bytes = base64.b64decode(data)
@@ -255,6 +257,43 @@ async def websocket_front_raise(ws: WebSocket):
                 "feedback": form_issues,
                 "press_counter": processor.press_counter, # Unified counter for both arms
                 "stage": 'up' if processor.left_arm.stage == 'up' and processor.right_arm.stage == 'up' else 'down'
+            }
+
+            await ws.send_text(json.dumps(stats))
+
+        except Exception as e:
+            print("🔥 ERROR:", e)
+            import traceback
+            traceback.print_exc()
+            break
+
+
+@app.websocket("/wsdeadlift")
+async def websocket_deadlift(ws: WebSocket):
+    await ws.accept()
+
+    from deadlift_processor import ProcessFrameDeadlift
+
+    # Processor self-initialises both MediaPipe (Pose + Hands) and YOLOv8
+    processor = ProcessFrameDeadlift(flip_frame=True)
+
+    while True:
+        try:
+            data = await ws.receive_text()
+
+            frame = decode_base64_frame(data)
+            processed_frame, form_issues = processor.process(frame)
+            encoded = encode_frame(processed_frame)
+
+            stats = {
+                "frame":              encoded,
+                "form_ok":            len(form_issues) == 0,
+                "feedback":           form_issues,
+                "deadlift_count":     processor.deadlift_count,
+                "improper_deadlift":  processor.improper_count,
+                "stage":              processor.stage,
+                "bar_drift_px":       round(processor.bar_drift_px, 1),
+                "grip_width_ratio":   processor.grip_width_ratio,
             }
 
             await ws.send_text(json.dumps(stats))

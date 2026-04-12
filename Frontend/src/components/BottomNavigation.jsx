@@ -21,7 +21,7 @@ export function BottomNavigation({ activeTab, onTabChange }) {
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${isActive
-                ? 'text-primary bg-accent'
+                ? 'text-brand bg-brand/10'
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >

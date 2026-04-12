@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Menu, X, Search, Settings, User, CalendarDays } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { AnimatedList } from './ui/AnimatedList';
 
 export function Header({ activeTab, onTabChange }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('user_profile');
+      if (saved) setUserProfile(JSON.parse(saved));
+    } catch(e) {}
+  }, []);
 
   const tabs = [
     { id: 'home', label: 'Home' },
@@ -72,7 +80,7 @@ export function Header({ activeTab, onTabChange }) {
           <div className="flex items-center gap-1 md:gap-2">
             <button
               onClick={() => onTabChange && onTabChange('calendar')}
-              className={`p-2 rounded-full transition-colors ${activeTab === 'calendar' ? 'bg-[#1D9E75]/10 text-[#1D9E75]' : 'hover:bg-neutral-100 text-neutral-500'}`}
+              className={`p-2 rounded-full transition-colors ${activeTab === 'calendar' ? 'bg-brand/10 text-brand' : 'hover:bg-neutral-100 text-neutral-500'}`}
               title="Workout Schedule"
             >
               <CalendarDays size={18} />
@@ -86,14 +94,19 @@ export function Header({ activeTab, onTabChange }) {
           </div>
 
           {/* User Profile Segment */}
-          <div className="flex items-center gap-3 pl-2 border-l border-neutral-200 ml-1 md:ml-2">
+          <div 
+            className="flex items-center gap-3 pl-2 border-l border-neutral-200 ml-1 md:ml-2 cursor-pointer hover:bg-neutral-50 p-1 rounded-lg transition-colors"
+            onClick={() => onTabChange && onTabChange('profile')}
+          >
             <div className="hidden md:flex flex-col items-end">
-              <p className="text-xs font-bold text-neutral-900">Kriish Chheda</p>
-              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">Intermediate</p>
+              <p className="text-xs font-bold text-neutral-900">{userProfile?.name || 'Guest'}</p>
+              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">{userProfile?.experience || 'Beginner'}</p>
             </div>
             <Avatar className="w-7 h-7 md:w-9 md:h-9 border border-neutral-200 shadow-sm">
               <AvatarImage src="/placeholder-avatar.jpg" />
-              <AvatarFallback className="bg-neutral-100 text-neutral-600 text-[10px] font-bold">KC</AvatarFallback>
+              <AvatarFallback className="bg-neutral-100 text-neutral-600 text-[10px] font-bold">
+                {userProfile?.name ? userProfile.name.charAt(0) : 'U'}
+              </AvatarFallback>
             </Avatar>
 
             {/* Mobile Menu Toggle (Hidden on Desktop) */}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ArrowUp, ArrowRight, RotateCcw, Zap, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowUp, ArrowRight, RotateCcw, Zap, Lock, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import bicep from '../assets/bicep.png';
 import squats from '../assets/squats.png';
 import shoulderPress from '../assets/shoulder-press.png';
@@ -119,6 +119,23 @@ export function ExerciseScreen({ onStartWorkout }) {
         donts: ['Swing the weight up using momentum', 'Lean back excessively', 'Lift significantly above shoulder level']
       }
     },
+    {
+      name: 'Deadlift',
+      category: 'Back',
+      difficulty: 'Advanced',
+      duration: '5-8 min',
+      icon: Dumbbell,
+      color: 'bg-red-800',
+      exerciseType: 'deadlift',
+      available: true,
+      details: {
+        history: 'One of the oldest lifts in human history — traced to ancient strongman competitions and formalized into modern powerlifting in the mid-20th century. The deadlift is regarded as the ultimate test of raw pulling strength.',
+        advantages: ['Trains nearly every muscle in the body simultaneously', 'Builds exceptional posterior-chain strength (glutes, hamstrings, spinal erectors)', 'Improves functional strength for everyday movements', 'Highest systemic anabolic stimulus of any single exercise'],
+        disadvantages: ['High injury risk to lower back with poor form', 'Demands significant central nervous system recovery', 'Requires careful warm-up and progressive loading'],
+        dos: ['Keep the bar close to your body — skim the shins', 'Drive your hips and knees together during the pull', 'Brace your core before initiating the lift', 'Maintain a neutral spine throughout', 'Drive through your heels and push the floor away'],
+        donts: ['Round your lower back at any phase', 'Let the bar drift forward away from your legs', 'Shoot your hips up before the bar leaves the floor', 'Hyperextend at lockout — stand tall, not lean back', 'Hold your breath for the entire set on heavy work']
+      }
+    },
   ];
 
   const categories = ['All', 'Arms', 'Shoulders', 'Chest', 'Back', 'Legs'];
@@ -226,9 +243,9 @@ export function ExerciseScreen({ onStartWorkout }) {
                       <div className="space-y-6">
                         <div>
                           <h4 className="text-[11px] font-bold uppercase tracking-widest text-[#0F6E56] mb-3 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" /> Advantages
+                            <div className="w-1.5 h-1.5 rounded-full bg-brand" /> Advantages
                           </h4>
-                          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1.5 marker:text-[#1D9E75]/40">
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1.5 marker:text-brand/40">
                             {exercise.details.advantages.map((item, i) => <li key={i}>{item}</li>)}
                           </ul>
                         </div>

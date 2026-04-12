@@ -5,6 +5,39 @@ import { Progress } from './ui/progress';
 import { TrendingUp, Calendar, Target, Zap, Activity } from 'lucide-react';
 
 export function HomeScreen() {
+  const [userName, setUserName] = React.useState('Athlete');
+  const [greeting, setGreeting] = React.useState('Welcome back');
+  const [todaysNote, setTodaysNote] = React.useState("Ready for today's workout? Let's get moving!");
+
+  React.useEffect(() => {
+    try {
+      const profileStr = localStorage.getItem('user_profile');
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile.name) {
+           setUserName(profile.name.split(' ')[0]);
+        }
+      }
+    } catch(e) {}
+
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 17) setGreeting('Good afternoon');
+    else if (hour < 22) setGreeting('Good evening');
+    else setGreeting('Late night grind');
+
+    try {
+      const notesStr = localStorage.getItem('workout_notes');
+      const todayStr = new Date().toDateString();
+      if (notesStr) {
+        const notes = JSON.parse(notesStr);
+        if (notes[todayStr]) {
+          setTodaysNote(`Today's Calendar Plan: ${notes[todayStr]}`);
+        }
+      }
+    } catch(e) {}
+  }, []);
+
   return (
     <div className="w-full lg:w-3/4 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       {/* Page Heading */}
@@ -13,15 +46,15 @@ export function HomeScreen() {
       </p>
 
       {/* Welcome Section */}
-      <div className="bg-[#030213] text-white rounded-[20px] p-6 lg:p-8 mb-6 shadow-md relative overflow-hidden">
+      <div className="bg-brand text-white rounded-[20px] p-6 lg:p-8 mb-6 shadow-md relative overflow-hidden transition-colors duration-500">
         {/* Decorative background shapes */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-20 w-32 h-32 rounded-full bg-indigo-500/20 blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-20 w-32 h-32 rounded-full bg-black/20 blur-2xl pointer-events-none" />
 
         <div className="relative z-10">
-          <h2 className="text-2xl lg:text-3xl font-bold mb-2 tracking-tight">Welcome back, Kriish!</h2>
-          <p className="text-white/70 mb-6 text-sm lg:text-base">Ready for today's workout? You're on a 12-day streak!</p>
-          <Button className="bg-white text-[#030213] hover:bg-neutral-200 px-6 rounded-full font-semibold border-0">
+          <h2 className="text-2xl lg:text-3xl font-bold mb-2 tracking-tight">{greeting}, {userName}{greeting.includes('grind') ? '?' : '!'}</h2>
+          <p className="text-white/80 mb-6 text-sm lg:text-base">{todaysNote}</p>
+          <Button className="bg-white text-brand hover:bg-neutral-100 px-6 rounded-full font-semibold border-0 transition-colors">
             Start Workout
           </Button>
         </div>

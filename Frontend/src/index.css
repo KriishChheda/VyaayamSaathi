@@ -2,6 +2,7 @@
 
 @layer base {
   :root {
+    --theme-color: #1D9E75;
     --font-size: 14px;
     --background: #fff;
     --foreground: oklch(0.145 0 0);
@@ -100,6 +101,7 @@
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-brand: var(--theme-color);
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);

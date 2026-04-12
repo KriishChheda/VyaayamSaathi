@@ -15,7 +15,7 @@ import { Edit2, Pencil } from "lucide-react";
 
 /* ── Dot accent used in section headers ─────────────────────────────────── */
 function SectionLabel({ color, children }) {
-  const dots = { purple: "#7F77DD", teal: "#1D9E75", amber: "#BA7517" };
+  const dots = { purple: "#7F77DD", teal: "var(--theme-color)", amber: "#BA7517" };
   return (
     <div className="flex items-center gap-2 px-5 pt-5 pb-0">
       <span
@@ -61,14 +61,34 @@ function InfoField({ label, value }) {
 /* ── Main component ──────────────────────────────────────────────────────── */
 export function ProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState({
-    name: "Kriish Chheda",
-    age: "20",
-    height: "5'10\"",
-    weight: "170 lbs",
-    experience: "intermediate",
-    goals: ["Muscle Building", "Strength"],
-    joinDate: "January 2024",
+  const [profile, setProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem("user_profile");
+      if (saved) {
+        const p = JSON.parse(saved);
+        return {
+          email: p.email || "",
+          name: p.name || "",
+          age: p.age || "",
+          height: p.height || "",
+          weight: p.weight || "",
+          experience: p.experience || "beginner",
+          goals: p.goals || [],
+          joinDate: "Recently"
+        };
+      }
+    } catch (e) {}
+    
+    return {
+      email: "",
+      name: "Guest",
+      age: "-",
+      height: "-",
+      weight: "-",
+      experience: "beginner",
+      goals: [],
+      joinDate: "Today",
+    };
   });
 
   const update = (key) => (e) => setProfile({ ...profile, [key]: e.target.value });
@@ -97,20 +117,32 @@ export function ProfileScreen() {
                   <Avatar className="w-14 h-14 -mt-7 ring-[3px] ring-background mb-3">
                     <AvatarImage src="/placeholder-avatar.jpg" />
                     <AvatarFallback className="bg-[#7F77DD] text-[#EEEDFE] text-base font-semibold">
-                      KC
+                      {profile.name?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <p className="text-base font-semibold">{profile.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Member since {profile.joinDate}
                   </p>
-                  <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="mt-4 flex items-center gap-1.5 text-xs font-medium text-[#534AB7] bg-[#EEEDFE] rounded-full px-3 py-1.5 border-0 cursor-pointer hover:bg-[#AFA9EC]/40 transition-colors"
-                  >
-                    <Edit2 size={11} />
-                    {isEditing ? "Cancel" : "Edit profile"}
-                  </button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="flex items-center gap-1.5 text-xs font-medium text-[#534AB7] bg-[#EEEDFE] rounded-full px-3 py-1.5 border-0 cursor-pointer hover:bg-[#AFA9EC]/40 transition-colors"
+                    >
+                      <Edit2 size={11} />
+                      {isEditing ? "Cancel" : "Edit profile"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user_profile');
+                        window.location.reload();
+                      }}
+                      className="flex items-center gap-1.5 text-xs font-medium text-[#993C1D] bg-[#FAECE7] rounded-full px-3 py-1.5 border-0 cursor-pointer hover:bg-[#F8D2C6]/80 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -146,7 +178,25 @@ export function ProfileScreen() {
               <CardContent className="px-5 pt-3 pb-5 space-y-3">
                 <Select
                   value={profile.experience}
-                  onValueChange={(v) => setProfile({ ...profile, experience: v })}
+                  onValueChange={async (v) => {
+                    const updatedProfile = { ...profile, experience: v };
+                    setProfile(updatedProfile);
+                    localStorage.setItem("user_profile", JSON.stringify(updatedProfile));
+                    if (profile.email) {
+                      try {
+                        await fetch('http://localhost:8000/auth/update-profile', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            email: profile.email,
+                            experience: v,
+                          })
+                        });
+                      } catch (e) {
+                        console.error('Failed to update experience:', e);
+                      }
+                    }
+                  }}
                 >
                   <SelectTrigger className="text-sm border-border/40">
                     <SelectValue />
@@ -192,7 +242,27 @@ export function ProfileScreen() {
                       <Input value={profile.weight} onChange={update("weight")} className="text-sm border-border/40" />
                     </div>
                     <button
-                      onClick={() => setIsEditing(false)}
+                      onClick={async () => {
+                        localStorage.setItem("user_profile", JSON.stringify(profile));
+                        if (profile.email) {
+                          try {
+                            await fetch('http://localhost:8000/auth/update-profile', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                email: profile.email,
+                                name: profile.name,
+                                age: profile.age,
+                                height: profile.height,
+                                weight: profile.weight,
+                              })
+                            });
+                          } catch (e) {
+                            console.error('Failed to update profile:', e);
+                          }
+                        }
+                        setIsEditing(false);
+                      }}
                       className="w-full text-sm font-medium bg-[#7F77DD] hover:bg-[#534AB7] text-white rounded-lg py-2 border-0 cursor-pointer transition-colors"
                     >
                       Save changes

@@ -9,10 +9,12 @@ import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock, User, ArrowRight, Chrome } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { toast } from 'sonner';
 
 export function SignupForm({ onBack, onSignup, onShowLogin }) {
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -41,11 +43,39 @@ export function SignupForm({ onBack, onSignup, onShowLogin }) {
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      onSignup();
+      setIsLoading(true);
+      try {
+        const payload = {
+            ...formData,
+            age: formData.age ? formData.age.toString() : null
+        };
+        const response = await fetch('http://localhost:8000/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || 'Signup failed');
+        }
+
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('user_profile', JSON.stringify(data.user));
+        
+        onSignup(data.user);
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 

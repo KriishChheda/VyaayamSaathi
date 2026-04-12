@@ -6,16 +6,45 @@ import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock, Chrome } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { toast } from 'sonner';
 
 export function LoginForm({ onBack, onLogin, onShowSignup }) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate login
-    onLogin();
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
+
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user_profile', JSON.stringify(data.user));
+      
+      if (data.user.workout_dates) localStorage.setItem('workout_dates', JSON.stringify(data.user.workout_dates));
+      if (data.user.workout_notes) localStorage.setItem('workout_notes', JSON.stringify(data.user.workout_notes));
+      if (data.user.notification_time) localStorage.setItem('notification_time', data.user.notification_time);
+
+      onLogin(data.user);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

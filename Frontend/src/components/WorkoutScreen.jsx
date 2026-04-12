@@ -40,6 +40,11 @@ const EXERCISE_CONFIG = {
     title: 'Front Raises',
     hint: 'Stand facing the camera with arms at your sides',
   },
+  deadlift: {
+    wsUrl: 'ws://localhost:8000/wsdeadlift',
+    title: 'Deadlift',
+    hint: 'Stand sideways to the camera so your full profile is visible',
+  },
 };
 
 // Feedback severity → CSS class
@@ -151,6 +156,13 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
   const [improperLunge, setImproperLunge] = useState(0);
   const [lungeStage, setLungeStage] = useState('up');
 
+  // Deadlift stats
+  const [deadliftCount, setDeadliftCount] = useState(0);
+  const [improperDeadlift, setImproperDeadlift] = useState(0);
+  const [deadliftStage, setDeadliftStage] = useState('setup');
+  const [barDriftPx, setBarDriftPx] = useState(0);
+  const [gripWidthRatio, setGripWidthRatio] = useState(1.0);
+
   // Refs
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -248,6 +260,8 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
     setSquatCount(0); setImproperSquat(0); setSquatState(null);
     setPressCount(0); setPressStage('down');
     setLungeCount(0); setImproperLunge(0); setLungeStage('up');
+    setDeadliftCount(0); setImproperDeadlift(0); setDeadliftStage('setup');
+    setBarDriftPx(0); setGripWidthRatio(1.0);
     setFeedback([]); setFormOk(true);
     pendingFrameRef.current = false;
     spokenMap.clear();
@@ -315,6 +329,15 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
           setLungeStage(data.stage);
         }
 
+        // ── Deadlift fields ──
+        if (data.deadlift_count !== undefined) {
+          setDeadliftCount(data.deadlift_count);
+          setImproperDeadlift(data.improper_deadlift);
+          setDeadliftStage(data.stage);
+          if (data.bar_drift_px !== undefined) setBarDriftPx(data.bar_drift_px);
+          if (data.grip_width_ratio !== undefined) setGripWidthRatio(data.grip_width_ratio);
+        }
+
         // ── Speak corrective feedback ──
         if (voiceEnabledRef.current && Array.isArray(data.feedback) && data.feedback.length > 0) {
           speakMessages(data.feedback);
@@ -366,6 +389,122 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
   return (
     <div className="w-full lg:w-3/4 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
 
+      {/* ── EXPANDED OVERLAY ── */}
+      {isExpanded && (
+        <div
+          className="fixed left-0 right-0 bg-black z-40 flex flex-col"
+          style={{ top: '57px', bottom: '64px' }}
+        >
+          {/* Expanded display — only shows processedFrame from WS.
+              Refs (videoRef, canvasRef) stay in the card below for frame capture. */}
+          <div className="relative flex-1 overflow-hidden min-h-0">
+            {processedFrame ? (
+              <img
+                src={processedFrame}
+                alt="Pose analysis"
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <Camera size={56} className="mx-auto mb-3 opacity-30 text-neutral-400" />
+                <p className="text-sm font-medium opacity-60 text-neutral-300">
+                  {isActive ? 'Waiting for first frame…' : 'Start the workout to begin'}
+                </p>
+              </div>
+            )}
+
+            {/* Overlays */}
+            <div className="absolute inset-0 pointer-events-none">
+              {/* Status badge */}
+              <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm border border-white/10">
+                <div className={`w-2 h-2 rounded-full ${statusDot}`} />
+                <span className="text-white text-[10px] font-bold tracking-widest">{statusLabel}</span>
+              </div>
+
+              {/* Voice indicator */}
+              {isActive && (
+                <div className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest shadow-sm border transition-colors ${
+                  voiceEnabled
+                    ? 'bg-brand/10 border-brand/30 text-brand'
+                    : 'bg-black/70 border-white/10 text-neutral-400 backdrop-blur-sm'
+                }`}>
+                  {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                  {voiceEnabled ? 'VOICE' : 'MUTED'}
+                </div>
+              )}
+
+              {/* Paused overlay */}
+              {isPaused && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                  <div className="text-white text-4xl font-bold tracking-widest">PAUSED</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom control bar */}
+          <div className="flex-shrink-0 bg-neutral-950 border-t border-neutral-800 px-4 py-2.5 flex items-center justify-between gap-3">
+            {/* Left: voice + form status */}
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setVoiceEnabled(v => !v)}
+                className={`flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-colors ${
+                  voiceEnabled ? 'text-brand hover:text-emerald-400' : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                {voiceEnabled ? <><Volume2 size={14} /> Voice</> : <><VolumeX size={14} /> Muted</>}
+              </button>
+              {isActive && (
+                <span className={`text-xs font-bold uppercase tracking-wide ${
+                  formOk ? 'text-brand' : 'text-[#D4183D]'
+                }`}>
+                  {formOk ? '✓ Form Good' : '⚠ Fix Form'}
+                </span>
+              )}
+            </div>
+
+            {/* Center: workout controls */}
+            <div className="flex items-center gap-2">
+              {!isActive ? (
+                <button
+                  onClick={startWorkout}
+                  disabled={wsStatus === 'connecting'}
+                  className="flex items-center gap-2 bg-white text-neutral-900 px-5 py-2 rounded-full text-sm font-bold hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                >
+                  <Play size={16} />
+                  {wsStatus === 'connecting' ? 'Connecting…' : 'Start'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={togglePause}
+                    className="flex items-center gap-2 bg-neutral-700 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-neutral-600 transition-colors"
+                  >
+                    {isPaused ? <Play size={15} /> : <Pause size={15} />}
+                    {isPaused ? 'Resume' : 'Pause'}
+                  </button>
+                  <button
+                    onClick={stopWorkout}
+                    className="flex items-center gap-2 bg-[#D4183D] text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-[#BA2D49] transition-colors"
+                  >
+                    <Square size={15} />
+                    Stop
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Right: shrink */}
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-neutral-400 hover:text-neutral-200 transition-colors"
+            >
+              <Minimize2 size={14} /> Shrink
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <p className="text-[11px] font-medium tracking-widest uppercase text-muted-foreground mb-1">
@@ -374,7 +513,7 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
         <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">{config.title}</h2>
         <p className="text-muted-foreground flex items-center gap-1.5 text-sm mt-2">
           {wsStatus === 'connected'
-            ? <><Wifi size={14} className="text-[#1D9E75]" /> AI is monitoring your form</>
+            ? <><Wifi size={14} className="text-brand" /> AI is monitoring your form</>
             : <><WifiOff size={14} className="text-gray-400" /> {config.hint}</>
           }
         </p>
@@ -391,8 +530,9 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
               <div className="flex items-center justify-between px-4 py-2.5 bg-neutral-900 border-b border-neutral-800">
                 <button
                   onClick={() => setVoiceEnabled(v => !v)}
-                  className={`flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-colors ${voiceEnabled ? 'text-[#1D9E75] hover:text-emerald-400' : 'text-neutral-500 hover:text-neutral-300'
-                    }`}
+                  className={`flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-colors ${
+                    voiceEnabled ? 'text-brand hover:text-emerald-400' : 'text-neutral-500 hover:text-neutral-300'
+                  }`}
                   title={voiceEnabled ? 'Voice feedback ON — click to mute' : 'Voice feedback OFF — click to enable'}
                 >
                   {voiceEnabled
@@ -402,21 +542,15 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
                 </button>
 
                 <button
-                  onClick={() => setIsExpanded(e => !e)}
+                  onClick={() => setIsExpanded(true)}
                   className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-neutral-500 hover:text-neutral-300 transition-colors"
                 >
-                  {isExpanded
-                    ? <><Minimize2 size={14} /> Shrink</>
-                    : <><Maximize2 size={14} /> Expand</>
-                  }
+                  <Maximize2 size={14} /> Expand
                 </button>
               </div>
 
-              {/* Video area */}
-              <div
-                className={`relative flex items-center justify-center overflow-hidden transition-all duration-300 ${isExpanded ? 'aspect-video' : 'aspect-[4/3]'
-                  }`}
-              >
+              {/* Video area — normal (non-expanded) mode */}
+              <div className="relative flex items-center justify-center overflow-hidden aspect-[4/3]">
                 {processedFrame && (
                   <img
                     src={processedFrame}
@@ -428,7 +562,9 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
                 <video
                   ref={videoRef}
                   autoPlay muted playsInline
-                  className={`w-full h-full object-cover ${processedFrame ? 'invisible' : isActive ? 'visible' : 'invisible'}`}
+                  className={`w-full h-full object-cover ${
+                    processedFrame ? 'invisible' : isActive ? 'visible' : 'invisible'
+                  }`}
                 />
 
                 {!isActive && !processedFrame && (
@@ -448,8 +584,11 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
                   </div>
 
                   {isActive && (
-                    <div className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest shadow-sm border transition-colors ${voiceEnabled ? 'bg-[#E1F5EE]/90 border-[#1D9E75]/30 text-[#1D9E75]' : 'bg-black/70 border-white/10 text-neutral-400 backdrop-blur-sm'
-                      }`}>
+                    <div className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest shadow-sm border transition-colors ${
+                      voiceEnabled
+                        ? 'bg-brand/10 border-brand/30 text-brand'
+                        : 'bg-black/70 border-white/10 text-neutral-400 backdrop-blur-sm'
+                    }`}>
                       {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
                       {voiceEnabled ? 'VOICE' : 'MUTED'}
                     </div>
@@ -508,10 +647,10 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2.5 mb-3">
                   {formOk
-                    ? <CheckCircle2 size={18} className="text-[#1D9E75] flex-shrink-0" />
+                    ? <CheckCircle2 size={18} className="text-brand flex-shrink-0" />
                     : <AlertTriangle size={18} className="text-[#D4183D] flex-shrink-0" />
                   }
-                  <span className={`text-sm font-bold uppercase tracking-wide ${formOk ? 'text-[#1D9E75]' : 'text-[#D4183D]'}`}>
+                  <span className={`text-sm font-bold uppercase tracking-wide ${formOk ? 'text-brand' : 'text-[#D4183D]'}`}>
                     {formOk ? 'Form: GOOD ✓' : 'Form: NEEDS CORRECTION'}
                   </span>
                   {!voiceEnabled && !formOk && (
@@ -534,7 +673,7 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
                     ))}
                   </div>
                 ) : (
-                  <p className={`text-xs sm:text-sm font-medium mt-2 p-3 rounded-lg ${formOk ? 'bg-[#1D9E75]/10 text-[#0F6E56]' : 'bg-[#D4183D]/10 text-[#993C1D]'}`}>
+                  <p className={`text-xs sm:text-sm font-medium mt-2 p-3 rounded-lg ${formOk ? 'bg-brand/10 text-brand' : 'bg-[#D4183D]/10 text-[#993C1D]'}`}>
                     {formOk ? 'Keep it up — your form looks great!' : 'Adjust your position and continue.'}
                   </p>
                 )}
@@ -555,7 +694,7 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
                     <p className="text-[11px] font-bold text-[#534AB7] uppercase tracking-widest mb-1">Right Arm</p>
                     <p className="text-5xl font-bold text-[#3C3489] my-2">{rightReps}</p>
                     <Badge variant="outline"
-                      className={`text-[10px] font-bold tracking-widest uppercase border-0 ${rightStage === 'up' ? 'bg-[#1D9E75]/20 text-[#0F6E56]' : 'bg-[#BA7517]/20 text-[#854F0B]'}`}
+                      className={`text-[10px] font-bold tracking-widest uppercase border-0 ${rightStage === 'up' ? 'bg-brand/20 text-brand' : 'bg-[#BA7517]/20 text-[#854F0B]'}`}
                     >
                       {rightStage}
                     </Badge>
@@ -564,10 +703,10 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
 
                 <Card className="border-0 shadow-sm bg-[#E1F5EE]">
                   <CardContent className="p-5 text-center">
-                    <p className="text-[11px] font-bold text-[#0F6E56] uppercase tracking-widest mb-1">Left Arm</p>
+                    <p className="text-[11px] font-bold text-brand uppercase tracking-widest mb-1">Left Arm</p>
                     <p className="text-5xl font-bold text-[#0A4A3A] my-2">{leftReps}</p>
                     <Badge variant="outline"
-                      className={`text-[10px] font-bold tracking-widest uppercase border-0 ${leftStage === 'up' ? 'bg-[#1D9E75]/20 text-[#0F6E56]' : 'bg-[#BA7517]/20 text-[#854F0B]'}`}
+                      className={`text-[10px] font-bold tracking-widest uppercase border-0 ${leftStage === 'up' ? 'bg-brand/20 text-brand' : 'bg-[#BA7517]/20 text-[#854F0B]'}`}
                     >
                       {leftStage}
                     </Badge>
@@ -585,12 +724,12 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
           ) : exerciseType === 'squat' ? (
             <div className="flex flex-col gap-4">
               <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" /> Squat Metrics
+                <div className="w-1.5 h-1.5 rounded-full bg-brand" /> Squat Metrics
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <Card className="border-0 shadow-sm bg-[#E1F5EE]">
                   <CardContent className="p-5 text-center">
-                    <div className="flex items-center justify-center gap-1.5 mb-1 text-[#0F6E56]">
+                    <div className="flex items-center justify-center gap-1.5 mb-1 text-brand">
                       <TrendingUp size={14} />
                       <p className="text-[10px] font-bold uppercase tracking-widest">Correct</p>
                     </div>
@@ -634,12 +773,12 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
           ) : (exerciseType === 'shoulder_press' || exerciseType === 'front_raise') ? (
             <div className="flex flex-col gap-4">
               <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" /> Form Metrics
+                <div className="w-1.5 h-1.5 rounded-full bg-brand" /> Form Metrics
               </p>
               <div className="grid grid-cols-1 gap-4">
                 <Card className="border-0 shadow-sm bg-[#E1F5EE]">
                   <CardContent className="p-6 text-center">
-                    <p className="text-[11px] font-bold text-[#0F6E56] uppercase tracking-widest mb-1">Total Reps</p>
+                    <p className="text-[11px] font-bold text-brand uppercase tracking-widest mb-1">Total Reps</p>
                     <p className="text-6xl font-bold text-[#0A4A3A] mt-2">{pressCount}</p>
                   </CardContent>
                 </Card>
@@ -671,7 +810,7 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
               <div className="grid grid-cols-2 gap-4">
                 <Card className="border-0 shadow-sm bg-[#E1F5EE]">
                   <CardContent className="p-5 text-center">
-                    <div className="flex items-center justify-center gap-1.5 mb-1 text-[#0F6E56]">
+                    <div className="flex items-center justify-center gap-1.5 mb-1 text-brand">
                       <TrendingUp size={14} />
                       <p className="text-[10px] font-bold uppercase tracking-widest">Correct</p>
                     </div>
@@ -705,6 +844,100 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
               {!isActive && (
                 <div className="text-[11px] font-bold uppercase tracking-widest text-[#BA7517] bg-[#FAEEDA] p-3 border-0 rounded-lg text-center shadow-sm">
                   💡 Stand sideways to the camera for best detection
+                </div>
+              )}
+            </div>
+          ) : exerciseType === 'deadlift' ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#D4183D]" /> Deadlift Metrics
+              </p>
+
+              {/* Rep counts */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="border-0 shadow-sm bg-[#E1F5EE]">
+                  <CardContent className="p-5 text-center">
+                    <div className="flex items-center justify-center gap-1.5 mb-1 text-brand">
+                      <TrendingUp size={14} />
+                      <p className="text-[10px] font-bold uppercase tracking-widest">Correct</p>
+                    </div>
+                    <p className="text-5xl font-bold text-[#0A4A3A] mt-2">{deadliftCount}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-sm bg-[#FAECE7]">
+                  <CardContent className="p-5 text-center">
+                    <div className="flex items-center justify-center gap-1.5 mb-1 text-[#993C1D]">
+                      <XCircle size={14} />
+                      <p className="text-[10px] font-bold uppercase tracking-widest">Improper</p>
+                    </div>
+                    <p className="text-5xl font-bold text-[#6D2812] mt-2">{improperDeadlift}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Stage badge */}
+              <Card className="border-border/40 shadow-sm">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <span className="font-semibold text-neutral-600">Current Phase</span>
+                  <Badge
+                    variant="outline"
+                    className={`border-0 text-xs font-bold tracking-widest uppercase ${
+                      deadliftStage === 'lockout' ? 'bg-[#E1F5EE] text-[#0A4A3A]' :
+                      deadliftStage === 'pull'    ? 'bg-[#EEEDFE] text-[#3C3489]' :
+                      deadliftStage === 'lower'   ? 'bg-[#FAEEDA] text-[#854F0B]' :
+                                                    'bg-neutral-100 text-neutral-500'
+                    }`}
+                  >
+                    {deadliftStage.toUpperCase()}
+                  </Badge>
+                </CardContent>
+              </Card>
+
+              {/* Bar drift */}
+              <Card className="border-border/40 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-neutral-600 text-sm">Bar Drift</span>
+                    <span className={`text-xs font-bold ${barDriftPx < 20 ? 'text-brand' : 'text-[#D4183D]'}`}>
+                      {barDriftPx < 20 ? 'ON PATH ✓' : `${Math.round(barDriftPx)}px off`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-neutral-100 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${barDriftPx < 20 ? 'bg-brand' : 'bg-[#D4183D]'}`}
+                      style={{ width: `${Math.min(barDriftPx / 80 * 100, 100)}%` }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Grip width ratio */}
+              <Card className="border-border/40 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-neutral-600 text-sm">Grip Width</span>
+                    <span className={`text-xs font-bold ${
+                      gripWidthRatio >= 0.85 && gripWidthRatio <= 2.2 ? 'text-brand' : 'text-[#D4183D]'
+                    }`}>
+                      {gripWidthRatio.toFixed(1)}× shoulder width
+                    </span>
+                  </div>
+                  <div className="w-full bg-neutral-100 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        gripWidthRatio >= 0.85 && gripWidthRatio <= 2.2 ? 'bg-brand' : 'bg-[#D4183D]'
+                      }`}
+                      style={{ width: `${Math.min(gripWidthRatio / 3 * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-1.5">Ideal: 1.0 – 2.2× shoulder width</p>
+                </CardContent>
+              </Card>
+
+              {!isActive && (
+                <div className="text-[11px] font-bold uppercase tracking-widest text-[#BA7517] bg-[#FAEEDA] p-3 border-0 rounded-lg text-center shadow-sm">
+                  💡 Stand sideways · Hold barbell or dumbbells
                 </div>
               )}
             </div>
