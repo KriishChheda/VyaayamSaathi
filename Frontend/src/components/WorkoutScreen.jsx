@@ -70,6 +70,7 @@ const spokenMap = new Map(); // message → timestamp last spoken
 const SPEAK_COOLDOWN_MS = 6000; // same message won't repeat for 6 s
 let isSpeaking = false; // guard: don't cancel while an utterance is playing
 let speechResumeTimer = null; // Chrome watchdog timer
+let activeUtterances = []; // Chrome bug fix: prevent garbage collection of utterances
 
 // Chrome bug workaround: speechSynthesis gets "stuck" in a paused state.
 // A periodic resume() call keeps it alive.
@@ -100,6 +101,8 @@ function speakMessages(messages) {
   if (toSpeak.length === 0) return;
 
   window.speechSynthesis.cancel();
+  activeUtterances = [];
+  isSpeaking = false;
   startSpeechWatchdog();
 
   toSpeak.forEach((msg, i) => {
@@ -109,9 +112,21 @@ function speakMessages(messages) {
     utter.pitch = 1.05;
     utter.volume = 1;
 
+    // Prevent garbage collection by keeping a reference
+    activeUtterances.push(utter);
+
     utter.onstart = () => { isSpeaking = true; };
-    utter.onend = () => { isSpeaking = false; };
-    utter.onerror = () => { isSpeaking = false; };
+    utter.onend = () => { 
+      isSpeaking = false; 
+      // Remove from array when done
+      const idx = activeUtterances.indexOf(utter);
+      if (idx > -1) activeUtterances.splice(idx, 1);
+    };
+    utter.onerror = () => { 
+      isSpeaking = false;
+      const idx = activeUtterances.indexOf(utter);
+      if (idx > -1) activeUtterances.splice(idx, 1);
+    };
 
     window.speechSynthesis.speak(utter);
     spokenMap.set(msg, now);
@@ -199,6 +214,7 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
   useEffect(() => {
     return () => {
       window.speechSynthesis?.cancel();
+      activeUtterances = [];
       stopSpeechWatchdog();
       isSpeaking = false;
     };
@@ -237,6 +253,7 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
     isActiveRef.current = false;
     pendingFrameRef.current = false;
     window.speechSynthesis?.cancel();
+    activeUtterances = [];
     stopSpeechWatchdog();
     isSpeaking = false;
 
@@ -266,6 +283,14 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
     pendingFrameRef.current = false;
     spokenMap.clear();
 
+    // Unlock Web Speech API with a silent dummy utterance on user click
+    if (window.speechSynthesis) {
+      const unlockUtterance = new SpeechSynthesisUtterance('started');
+      unlockUtterance.volume = 0;
+      activeUtterances.push(unlockUtterance);
+      window.speechSynthesis.speak(unlockUtterance);
+    }
+
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -284,6 +309,23 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
       setWsStatus('connected');
       setIsActive(true);
       isActiveRef.current = true;
+
+      // Send calibration thresholds for shoulder press
+      if (exerciseType === 'shoulder_press') {
+        try {
+          const raw = localStorage.getItem('calibration_shoulder_press');
+          if (raw) {
+            const cal = JSON.parse(raw);
+            const now = new Date();
+            const expires = new Date(cal.expires_at);
+            if (now <= expires && cal.thresholds) {
+              ws.send(JSON.stringify({ thresholds: cal.thresholds }));
+              console.log('🎯 Sent calibration thresholds:', cal.thresholds);
+            }
+          }
+        } catch (e) { console.warn('Failed to send calibration:', e); }
+      }
+
       setTimeout(sendFrame, 200);
     };
 
@@ -369,7 +411,11 @@ export function WorkoutScreen({ exerciseType = 'bicep' }) {
       const next = !p;
       isPausedRef.current = next;
       if (!next) { pendingFrameRef.current = false; requestAnimationFrame(sendFrame); }
-      if (next) window.speechSynthesis?.cancel(); // stop speech when pausing
+      if (next) {
+        window.speechSynthesis?.cancel(); // stop speech when pausing
+        activeUtterances = [];
+        isSpeaking = false;
+      }
       return next;
     });
   };

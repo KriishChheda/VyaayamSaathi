@@ -2,15 +2,30 @@ import React, { useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ArrowUp, ArrowRight, RotateCcw, Zap, Lock, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
+import { ArrowUp, ArrowRight, RotateCcw, Zap, Lock, ChevronDown, ChevronUp, Dumbbell, Settings2 } from 'lucide-react';
 import bicep from '../assets/bicep.png';
 import squats from '../assets/squats.png';
 import shoulderPress from '../assets/shoulder-press.png';
 import lunges from '../assets/lunges.png';
 
-export function ExerciseScreen({ onStartWorkout }) {
+export function ExerciseScreen({ onStartWorkout, onConfigure }) {
   const [activeCategory, setActiveCategory] = useState('All');
   const [expandedId, setExpandedId] = useState(null);
+
+  // Check calibration status for shoulder press
+  const getCalibrationStatus = () => {
+    try {
+      const raw = localStorage.getItem('calibration_shoulder_press');
+      if (!raw) return { status: 'none' };
+      const cal = JSON.parse(raw);
+      const now = new Date();
+      const expires = new Date(cal.expires_at);
+      if (now > expires) return { status: 'expired', date: cal.calibrated_at };
+      const daysLeft = Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
+      return { status: 'active', daysLeft, date: cal.calibrated_at };
+    } catch { return { status: 'none' }; }
+  };
+  const calStatus = getCalibrationStatus();
 
   const toggleExpand = (index) => {
     setExpandedId(expandedId === index ? null : index);
@@ -207,6 +222,26 @@ export function ExerciseScreen({ onStartWorkout }) {
                   </div>
                   
                   <div className="flex items-center gap-2 sm:gap-4 ml-2">
+                    {exercise.exerciseType === 'shoulder_press' && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onConfigure?.('shoulder_press');
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className={`rounded-full px-3 text-xs gap-1.5 ${
+                          calStatus.status === 'expired' ? 'border-amber-400 text-amber-600 hover:bg-amber-50' :
+                          calStatus.status === 'active' ? 'border-emerald-400 text-emerald-600 hover:bg-emerald-50' :
+                          ''
+                        }`}
+                      >
+                        <Settings2 size={13} />
+                        {calStatus.status === 'none' ? 'Configure' :
+                         calStatus.status === 'expired' ? 'Recalibrate' :
+                         `${calStatus.daysLeft}d left`}
+                      </Button>
+                    )}
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();

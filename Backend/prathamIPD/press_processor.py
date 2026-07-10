@@ -4,16 +4,18 @@ from run_press import PressArmTracker, calculate_angle, draw_form_status, draw_b
 from thresholds import get_thresholds_beginner
 
 class ProcessFramePress:
-    def __init__(self, flip_frame=True):
+    def __init__(self, flip_frame=True, custom_thresholds=None):
         self.flip_frame = flip_frame
-        self.left_arm = PressArmTracker("LEFT")
-        self.right_arm = PressArmTracker("RIGHT")
+        press_thresholds = custom_thresholds or {}
+        self.left_arm = PressArmTracker("LEFT", thresholds=press_thresholds)
+        self.right_arm = PressArmTracker("RIGHT", thresholds=press_thresholds)
         self.press_counter = 0
         self.been_at_top = False
         self.last_active_time = time.time()
         self.last_left_angle = None
         self.last_right_angle = None
         self.thresholds = get_thresholds_beginner()
+        self._symmetry_thresh = press_thresholds.get('SYMMETRY_THRESH', SYMMETRY_THRESH)
 
     def process(self, frame, pose):
         if self.flip_frame:
@@ -119,7 +121,7 @@ class ProcessFramePress:
                     l_wr_mirror = lm[mp_pose.PoseLandmark.RIGHT_WRIST.value]
                     r_wr_mirror = lm[mp_pose.PoseLandmark.LEFT_WRIST.value]
                     wrist_y_diff = abs(l_wr_mirror.y - r_wr_mirror.y)
-                    if wrist_y_diff > SYMMETRY_THRESH and \
+                    if wrist_y_diff > self._symmetry_thresh and \
                        (self.left_arm.started_pressing or self.right_arm.started_pressing):
                         form_issues.append(("UNEVEN - PRESS BOTH ARMS TOGETHER", (0, 140, 255)))
 

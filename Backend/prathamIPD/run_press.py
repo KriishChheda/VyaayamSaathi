@@ -84,7 +84,7 @@ class PressArmTracker:
     """Tracks a single arm's state and form issues for shoulder press.
     Does NOT count reps — that is done at a unified level."""
 
-    def __init__(self, name):
+    def __init__(self, name, thresholds=None):
         self.name = name
         self.stage = 'down'        # 'down' = elbows bent, 'up' = arms extended
         self.is_valid_position = False
@@ -94,6 +94,12 @@ class PressArmTracker:
         self.bad_position_frames = 0
         self.show_bad_position = False
         self.started_pressing = False
+        # Use custom thresholds or fall back to module-level defaults
+        t = thresholds or {}
+        self._angle_top = t.get('ANGLE_TOP', ANGLE_TOP)
+        self._angle_bottom = t.get('ANGLE_BOTTOM', ANGLE_BOTTOM)
+        self._wrist_drift = t.get('WRIST_DRIFT_THRESH', WRIST_DRIFT_THRESH)
+        self._min_elevation = t.get('MIN_UPPER_ARM_ELEVATION', MIN_UPPER_ARM_ELEVATION)
 
     def update(self, elbow_angle, shoulder_xy, elbow_xy, wrist_xy):
         """
@@ -113,7 +119,7 @@ class PressArmTracker:
         # CHECK: Upper arm elevated enough?
         self.upper_arm_deg = upper_arm_angle_from_vertical(shoulder_xy, elbow_xy)
 
-        if self.upper_arm_deg < MIN_UPPER_ARM_ELEVATION:
+        if self.upper_arm_deg < self._min_elevation:
             self.bad_position_frames += 1
             self.is_valid_position = False
             if self.bad_position_frames >= 5:
@@ -130,14 +136,14 @@ class PressArmTracker:
 
         # CHECK: Wrist drift
         wrist_drift = abs(wrist_xy[0] - elbow_xy[0])
-        if wrist_drift > WRIST_DRIFT_THRESH and self.started_pressing:
+        if wrist_drift > self._wrist_drift and self.started_pressing:
             form_issue = f"{self.name}: KEEP FOREARM VERTICAL"
 
         # Stage transitions
-        if elbow_angle >= ANGLE_TOP:
+        if elbow_angle >= self._angle_top:
             self.stage = 'up'
             self.started_pressing = True
-        elif elbow_angle <= ANGLE_BOTTOM:
+        elif elbow_angle <= self._angle_bottom:
             self.stage = 'down'
             self.started_pressing = True
         # else: mid-range, stage stays as-is

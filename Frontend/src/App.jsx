@@ -8,6 +8,7 @@ import { ProfileScreen } from './components/ProfileScreen';
 import { LandingPage } from './components/LandingPage';
 import { LoginForm } from './components/LoginForm';
 import { SignupForm } from './components/SignupForm';
+import CalibrationScreen from './components/CalibrationScreen';
 import { CalendarScreen } from './components/CalendarScreen';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
@@ -337,6 +338,20 @@ export default function App() {
               setExerciseType(type);
               setActiveTab('workout');
             }}
+            onConfigure={(type) => {
+              setExerciseType(type);
+              setActiveTab('calibration');
+            }}
+          />
+        );
+      case 'calibration':
+        return (
+          <CalibrationScreen
+            onComplete={(thresholds) => {
+              console.log('Calibration complete:', thresholds);
+              setActiveTab('exercises');
+            }}
+            onBack={() => setActiveTab('exercises')}
           />
         );
       case 'workout':

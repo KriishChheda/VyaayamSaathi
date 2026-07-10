@@ -130,3 +130,60 @@ async def update_profile(user_update: UserProfileUpdate):
         raise HTTPException(status_code=404, detail="User not found")
         
     return {"status": "success"}
+
+
+# ─── Calibration ───────────────────────────────────────────────────────────────
+
+CALIBRATION_EXPIRY_DAYS = 15
+
+class CalibrationData(BaseModel):
+    email: EmailStr
+    exercise: str  # e.g. "shoulder_press"
+    thresholds: dict  # e.g. {"ANGLE_TOP": 142, "ANGLE_BOTTOM": 88, ...}
+
+@router.post("/calibration")
+async def save_calibration(data: CalibrationData):
+    """Save per-user calibration thresholds for a specific exercise."""
+    now = datetime.utcnow()
+    expires = now + timedelta(days=CALIBRATION_EXPIRY_DAYS)
+
+    calibration_doc = {
+        "thresholds": data.thresholds,
+        "calibrated_at": now.isoformat(),
+        "expires_at": expires.isoformat(),
+    }
+
+    result = await db.users.update_one(
+        {"email": data.email},
+        {"$set": {f"calibration.{data.exercise}": calibration_doc}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "status": "success",
+        "calibrated_at": now.isoformat(),
+        "expires_at": expires.isoformat(),
+    }
+
+
+@router.get("/calibration/{email}")
+async def get_calibration(email: str):
+    """Retrieve all calibration data for a user."""
+    user = await db.users.find_one({"email": email}, {"calibration": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    calibration = user.get("calibration", {})
+    now = datetime.utcnow()
+
+    # Mark each exercise calibration as expired or valid
+    result = {}
+    for exercise, cal_data in calibration.items():
+        expires_at = datetime.fromisoformat(cal_data["expires_at"])
+        result[exercise] = {
+            **cal_data,
+            "is_expired": now > expires_at,
+        }
+
+    return {"calibration": result}
