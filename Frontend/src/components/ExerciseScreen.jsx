@@ -12,10 +12,10 @@ export function ExerciseScreen({ onStartWorkout, onConfigure }) {
   const [activeCategory, setActiveCategory] = useState('All');
   const [expandedId, setExpandedId] = useState(null);
 
-  // Check calibration status for shoulder press
-  const getCalibrationStatus = () => {
+  // Check calibration status for any exercise
+  const getCalibrationStatus = (exerciseType) => {
     try {
-      const raw = localStorage.getItem('calibration_shoulder_press');
+      const raw = localStorage.getItem(`calibration_${exerciseType}`);
       if (!raw) return { status: 'none' };
       const cal = JSON.parse(raw);
       const now = new Date();
@@ -25,7 +25,6 @@ export function ExerciseScreen({ onStartWorkout, onConfigure }) {
       return { status: 'active', daysLeft, date: cal.calibrated_at };
     } catch { return { status: 'none' }; }
   };
-  const calStatus = getCalibrationStatus();
 
   const toggleExpand = (index) => {
     setExpandedId(expandedId === index ? null : index);
@@ -187,6 +186,7 @@ export function ExerciseScreen({ onStartWorkout, onConfigure }) {
         {filtered.map((exercise, index) => {
           const Icon = exercise.icon;
           const isExpanded = expandedId === index;
+          const calStatus = getCalibrationStatus(exercise.exerciseType);
 
           return (
             <Card
@@ -222,11 +222,11 @@ export function ExerciseScreen({ onStartWorkout, onConfigure }) {
                   </div>
                   
                   <div className="flex items-center gap-2 sm:gap-4 ml-2">
-                    {exercise.exerciseType === 'shoulder_press' && (
+                    {exercise.available && (
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onConfigure?.('shoulder_press');
+                          onConfigure?.(exercise.exerciseType);
                         }}
                         variant="outline"
                         size="sm"
@@ -237,7 +237,7 @@ export function ExerciseScreen({ onStartWorkout, onConfigure }) {
                         }`}
                       >
                         <Settings2 size={13} />
-                        {calStatus.status === 'none' ? 'Configure' :
+                        {calStatus.status === 'none' ? 'Calibrate' :
                          calStatus.status === 'expired' ? 'Recalibrate' :
                          `${calStatus.daysLeft}d left`}
                       </Button>
@@ -249,7 +249,7 @@ export function ExerciseScreen({ onStartWorkout, onConfigure }) {
                       }}
                       disabled={!exercise.available}
                       size="sm"
-                      className={exercise.available ? 'bg-[#030213] hover:bg-neutral-800 text-white rounded-full px-4' : 'rounded-full px-4'}
+                      className={exercise.available ? 'bg-brand hover:bg-brand/90 text-white rounded-full px-4' : 'rounded-full px-4'}
                     >
                       {exercise.available ? 'Start' : 'Soon'}
                     </Button>

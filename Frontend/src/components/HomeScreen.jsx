@@ -54,7 +54,7 @@ export function HomeScreen() {
         <div className="relative z-10">
           <h2 className="text-2xl lg:text-3xl font-bold mb-2 tracking-tight">{greeting}, {userName}{greeting.includes('grind') ? '?' : '!'}</h2>
           <p className="text-white/80 mb-6 text-sm lg:text-base">{todaysNote}</p>
-          <Button className="bg-white text-brand hover:bg-neutral-100 px-6 rounded-full font-semibold border-0 transition-colors">
+          <Button className="bg-white hover:bg-neutral-100 px-6 rounded-full font-semibold border-0 transition-colors" style={{ color: 'var(--theme-color)' }}>
             Start Workout
           </Button>
         </div>
@@ -68,8 +68,8 @@ export function HomeScreen() {
           <div className="grid grid-cols-2 gap-4">
             <Card className="border-border/40 shadow-sm border-0 bg-white">
               <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#EEEDFE] flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-5 h-5 text-[#534AB7]" />
+                <div className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-5 h-5 text-brand" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-neutral-900 leading-none mb-1">24</p>
@@ -80,8 +80,8 @@ export function HomeScreen() {
 
             <Card className="border-border/40 shadow-sm border-0 bg-white">
               <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#E1F5EE] flex items-center justify-center shrink-0">
-                  <Target className="w-5 h-5 text-[#0F6E56]" />
+                <div className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                  <Target className="w-5 h-5 text-brand" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-neutral-900 leading-none mb-1">89%</p>
@@ -133,12 +133,12 @@ export function HomeScreen() {
               <div className="divide-y divide-border/40">
                 <div className="p-4 sm:p-5 flex items-center justify-between hover:bg-neutral-50/50 transition-colors">
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#E1F5EE] flex items-center justify-center shrink-0">
-                      <Zap className="w-4 h-4 text-[#0F6E56]" />
+                    <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                      <Zap className="w-4 h-4 text-brand" />
                     </div>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-neutral-900">Bicep Curls</p>
-                      <p className="text-[11px] sm:text-xs text-emerald-600 font-medium">95% form accuracy</p>
+                      <p className="text-[11px] sm:text-xs text-brand font-medium">95% form accuracy</p>
                     </div>
                   </div>
                   <span className="text-[10px] sm:text-xs font-medium text-muted-foreground whitespace-nowrap">2h ago</span>
@@ -146,12 +146,12 @@ export function HomeScreen() {
 
                 <div className="p-4 sm:p-5 flex items-center justify-between hover:bg-neutral-50/50 transition-colors">
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#EEEDFE] flex items-center justify-center shrink-0">
-                      <Zap className="w-4 h-4 text-[#534AB7]" />
+                    <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                      <Zap className="w-4 h-4 text-brand" />
                     </div>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-neutral-900">Shoulder Press</p>
-                      <p className="text-[11px] sm:text-xs text-[#534AB7] font-medium">87% form accuracy</p>
+                      <p className="text-[11px] sm:text-xs text-brand font-medium">87% form accuracy</p>
                     </div>
                   </div>
                   <span className="text-[10px] sm:text-xs font-medium text-muted-foreground whitespace-nowrap">1d ago</span>

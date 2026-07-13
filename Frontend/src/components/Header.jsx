@@ -54,7 +54,7 @@ export function Header({ activeTab, onTabChange }) {
               <button
                 key={tab.id}
                 onClick={() => onTabChange && onTabChange(tab.id)}
-                className={`text-xs font-semibold uppercase tracking-widest transition-colors ${isActive ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900'
+                className={`text-xs font-semibold uppercase tracking-widest transition-all pb-1 border-b-2 ${isActive ? 'text-brand border-brand' : 'text-neutral-500 hover:text-neutral-900 border-transparent'
                   }`}
               >
                 {tab.label}
@@ -85,10 +85,18 @@ export function Header({ activeTab, onTabChange }) {
             >
               <CalendarDays size={18} />
             </button>
-            <button className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-neutral-500">
+            <button
+              onClick={() => onTabChange && onTabChange('calendar')}
+              className={`p-2 rounded-full transition-colors ${activeTab === 'calendar' ? 'bg-brand/10 text-brand' : 'hover:bg-neutral-100 text-neutral-500'}`}
+              title="Workout Schedule"
+            >
               <Bell size={18} />
             </button>
-            <button className="hidden sm:block p-2 hover:bg-neutral-100 rounded-full transition-colors text-neutral-500">
+            <button
+              onClick={() => onTabChange && onTabChange('settings')}
+              className={`hidden sm:block p-2 rounded-full transition-colors ${activeTab === 'settings' ? 'bg-brand/10 text-brand' : 'hover:bg-neutral-100 text-neutral-500'}`}
+              title="Settings"
+            >
               <Settings size={18} />
             </button>
           </div>

@@ -32,6 +32,9 @@ function SettingsScreen() {
     return localStorage.getItem('theme_color') || '#1D9E75';
   });
 
+  const [workoutReminders, setWorkoutReminders] = React.useState(true);
+  const [formFeedbackAudio, setFormFeedbackAudio] = React.useState(false);
+
   const handleTimeChange = async (e) => {
     const newTime = e.target.value;
     setNotificationTime(newTime);
@@ -56,116 +59,169 @@ function SettingsScreen() {
     }
   };
 
+  const ToggleSwitch = ({ enabled, onToggle }) => (
+    <button
+      onClick={onToggle}
+      className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${enabled ? 'bg-brand' : 'bg-neutral-300'}`}
+    >
+      <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform duration-200 shadow-sm ${enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`}></div>
+    </button>
+  );
+
   return (
-    <div className="flex flex-col gap-4 p-4 pb-20 max-w-md mx-auto">
-      <h2 className="text-xl font-semibold mb-2">Settings</h2>
+    <div className="w-full lg:w-3/4 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      {/* Page Heading */}
+      <p className="text-[11px] font-medium tracking-widest uppercase text-muted-foreground mb-2">
+        Preferences
+      </p>
+      <h2 className="text-xl font-semibold mb-6">Settings</h2>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell size={20} />
-            Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span>Workout reminders</span>
-            <button className="w-12 h-6 bg-primary rounded-full relative">
-              <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
-            </button>
-          </div>
-          <div className="flex items-center justify-between mt-4">
-            <span>Reminder Time</span>
-            <input 
-              type="time" 
-              value={notificationTime} 
-              onChange={handleTimeChange}
-              className="px-2 py-1 bg-neutral-100 rounded border border-border outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-medium"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Form feedback audio</span>
-            <button className="w-12 h-6 bg-gray-300 rounded-full relative">
-              <div className="w-5 h-5 bg-white rounded-full absolute left-0.5 top-0.5"></div>
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings size={20} />
-            Theme Personalization
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3">
-            <span className="text-sm">Accent Color</span>
-            <div className="flex items-center gap-4 flex-wrap">
-              {THEME_COLORS.map(color => (
-                <button
-                  key={color.name}
-                  onClick={() => {
-                    setActiveTheme(color.value);
-                    localStorage.setItem('theme_color', color.value);
-                    document.documentElement.style.setProperty('--theme-color', color.value);
-                  }}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${activeTheme === color.value ? 'ring-2 ring-offset-2 ring-neutral-900 dark:ring-neutral-100' : ''}`}
-                  style={{ backgroundColor: color.value }}
-                >
-                  {activeTheme === color.value && <div className="w-2 h-2 bg-white rounded-full"></div>}
-                </button>
-              ))}
-              
-              {/* Custom Color Wheel Picker */}
-              <label 
-                title="Custom Color"
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-110 cursor-pointer overflow-hidden relative ${!THEME_COLORS.some(c => c.value.toLowerCase() === activeTheme.toLowerCase()) ? 'ring-2 ring-offset-2 ring-neutral-900 dark:ring-neutral-100' : ''}`}
-                style={{ 
-                  background: 'conic-gradient(from 180deg at 50% 50%, #ff0000 0deg, #ff8a00 45deg, #ffd600 90deg, #14ff00 135deg, #00fff0 180deg, #001aff 225deg, #ff00c8 270deg, #ff0000 360deg)'
-                }}
-              >
-                {!THEME_COLORS.some(c => c.value.toLowerCase() === activeTheme.toLowerCase()) && (
-                  <div className="w-4 h-4 rounded-full bg-white/40 backdrop-blur-md flex items-center justify-center pointer-events-none shadow-sm">
-                    <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
-                  </div>
-                )}
-                <input 
-                  type="color" 
-                  value={THEME_COLORS.some(c => c.value.toLowerCase() === activeTheme.toLowerCase()) ? "#000000" : activeTheme}
-                  onChange={(e) => {
-                    const colorValue = e.target.value;
-                    setActiveTheme(colorValue);
-                    localStorage.setItem('theme_color', colorValue);
-                    document.documentElement.style.setProperty('--theme-color', colorValue);
-                  }}
-                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer p-0 m-0"
-                />
-              </label>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Notifications */}
+        <Card className="border-border/40 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                <Bell size={16} className="text-brand" />
+              </div>
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5 pt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Workout reminders</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Get notified when it's time to train</p>
+              </div>
+              <ToggleSwitch enabled={workoutReminders} onToggle={() => setWorkoutReminders(!workoutReminders)} />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Reminder Time</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Daily notification schedule</p>
+              </div>
+              <input 
+                type="time" 
+                value={notificationTime} 
+                onChange={handleTimeChange}
+                className="px-3 py-1.5 bg-neutral-50 rounded-lg border border-border/40 outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm font-medium"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Form feedback audio</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Voice cues during exercises</p>
+              </div>
+              <ToggleSwitch enabled={formFeedbackAudio} onToggle={() => setFormFeedbackAudio(!formFeedbackAudio)} />
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HelpCircle size={20} />
-            App Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button variant="ghost" className="w-full justify-start">
-            <HelpCircle size={16} className="mr-2" />
-            Help & Support
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <Shield size={16} className="mr-2" />
-            Privacy Policy
-          </Button>
-        </CardContent>
-      </Card>
+        {/* Theme Personalization */}
+        <Card className="border-border/40 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                <Settings size={16} className="text-brand" />
+              </div>
+              Theme Personalization
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium mb-3">Accent Color</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {THEME_COLORS.map(color => (
+                    <button
+                      key={color.name}
+                      title={color.name}
+                      onClick={() => {
+                        setActiveTheme(color.value);
+                        localStorage.setItem('theme_color', color.value);
+                        document.documentElement.style.setProperty('--theme-color', color.value);
+                      }}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${activeTheme === color.value ? 'ring-2 ring-offset-2 ring-neutral-900 dark:ring-neutral-100' : ''}`}
+                      style={{ backgroundColor: color.value }}
+                    >
+                      {activeTheme === color.value && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                    </button>
+                  ))}
+                  
+                  {/* Custom Color Wheel Picker */}
+                  <label 
+                    title="Custom Color"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-110 cursor-pointer overflow-hidden relative ${!THEME_COLORS.some(c => c.value.toLowerCase() === activeTheme.toLowerCase()) ? 'ring-2 ring-offset-2 ring-neutral-900 dark:ring-neutral-100' : ''}`}
+                    style={{ 
+                      background: 'conic-gradient(from 180deg at 50% 50%, #ff0000 0deg, #ff8a00 45deg, #ffd600 90deg, #14ff00 135deg, #00fff0 180deg, #001aff 225deg, #ff00c8 270deg, #ff0000 360deg)'
+                    }}
+                  >
+                    {!THEME_COLORS.some(c => c.value.toLowerCase() === activeTheme.toLowerCase()) && (
+                      <div className="w-4 h-4 rounded-full bg-white/40 backdrop-blur-md flex items-center justify-center pointer-events-none shadow-sm">
+                        <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
+                      </div>
+                    )}
+                    <input 
+                      type="color" 
+                      value={THEME_COLORS.some(c => c.value.toLowerCase() === activeTheme.toLowerCase()) ? "#000000" : activeTheme}
+                      onChange={(e) => {
+                        const colorValue = e.target.value;
+                        setActiveTheme(colorValue);
+                        localStorage.setItem('theme_color', colorValue);
+                        document.documentElement.style.setProperty('--theme-color', colorValue);
+                      }}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer p-0 m-0"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Live preview swatch */}
+              <div className="bg-brand/10 rounded-xl p-4 flex items-center gap-4 mt-2">
+                <div className="w-12 h-12 rounded-xl bg-brand flex items-center justify-center shadow-sm shrink-0">
+                  <span className="text-white font-bold text-xs">VS</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: activeTheme }}>Active Theme Preview</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {THEME_COLORS.find(c => c.value.toLowerCase() === activeTheme.toLowerCase())?.name || 'Custom'} · {activeTheme.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* App Settings */}
+        <Card className="border-border/40 shadow-sm lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center">
+                <HelpCircle size={16} className="text-neutral-600" />
+              </div>
+              App & Support
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <Button variant="outline" className="justify-start h-auto py-3 px-4 border-border/40">
+                <HelpCircle size={16} className="mr-2 text-muted-foreground shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm font-medium">Help & Support</p>
+                  <p className="text-[11px] text-muted-foreground">Get assistance</p>
+                </div>
+              </Button>
+              <Button variant="outline" className="justify-start h-auto py-3 px-4 border-border/40">
+                <Shield size={16} className="mr-2 text-muted-foreground shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm font-medium">Privacy Policy</p>
+                  <p className="text-[11px] text-muted-foreground">Your data rights</p>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -347,6 +403,7 @@ export default function App() {
       case 'calibration':
         return (
           <CalibrationScreen
+            exerciseType={exerciseType}
             onComplete={(thresholds) => {
               console.log('Calibration complete:', thresholds);
               setActiveTab('exercises');

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Wrench } from 'lucide-react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Camera, Loader2, RotateCcw, RotateCw } from 'lucide-react';
 import SkeletonViewer from './SkeletonViewer';
 
@@ -43,7 +44,18 @@ function median(arr) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-export default function CalibrationScreen({ onComplete, onBack }) {
+const EXERCISE_LABELS = {
+  shoulder_press: 'Shoulder Press',
+  bicep: 'Bicep Curls',
+  squat: 'Squats',
+  lunge: 'Lunges',
+  hammer: 'Hammer Curls',
+  front_raise: 'Front Raises',
+  deadlift: 'Deadlift',
+};
+
+export default function CalibrationScreen({ exerciseType = 'shoulder_press', onComplete, onBack }) {
+  const exerciseLabel = EXERCISE_LABELS[exerciseType] || exerciseType;
   const [currentStep, setCurrentStep] = useState(0);
   const [wsStatus, setWsStatus] = useState('idle');
   const [processedFrame, setProcessedFrame] = useState(null);
@@ -280,6 +292,47 @@ export default function CalibrationScreen({ onComplete, onBack }) {
 
   const step = STEPS[currentStep];
 
+  // Coming Soon placeholder for exercises without calibration backend
+  if (exerciseType !== 'shoulder_press') {
+    return (
+      <div className="w-full max-w-4xl mx-auto px-4 py-6 pb-28">
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="sm" onClick={onBack} className="rounded-full">
+            <ArrowLeft size={18} />
+          </Button>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">Body Calibration</h2>
+            <p className="text-xs text-muted-foreground">{exerciseLabel} · Personalize your thresholds</p>
+          </div>
+        </div>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <CardContent className="p-0">
+            <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-10 sm:p-16 flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-6 ring-1 ring-white/10">
+                <Wrench className="w-10 h-10 text-amber-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">Coming Soon</h3>
+              <p className="text-sm text-neutral-400 max-w-md leading-relaxed mb-8">
+                Personalized calibration for <span className="text-white font-semibold">{exerciseLabel}</span> is currently under development. We're training our AI models to capture your unique joint angles and movement patterns for this exercise.
+              </p>
+              <div className="grid grid-cols-3 gap-4 w-full max-w-sm mb-8">
+                {['Pose Capture', 'Angle Mapping', 'Threshold Tuning'].map((feature, i) => (
+                  <div key={i} className="bg-white/5 rounded-xl p-3 border border-white/10">
+                    <div className="w-2 h-2 rounded-full bg-amber-400/60 mx-auto mb-2" />
+                    <p className="text-[10px] font-semibold text-neutral-300 uppercase tracking-wider">{feature}</p>
+                  </div>
+                ))}
+              </div>
+              <Button onClick={onBack} className="rounded-full bg-white text-neutral-900 hover:bg-neutral-200 px-6">
+                <ArrowLeft size={14} className="mr-1.5" /> Back to Exercises
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-6 pb-28">
       {/* Header */}
@@ -289,7 +342,7 @@ export default function CalibrationScreen({ onComplete, onBack }) {
         </Button>
         <div>
           <h2 className="text-xl font-bold tracking-tight">Body Calibration</h2>
-          <p className="text-xs text-muted-foreground">Shoulder Press · Personalize your thresholds</p>
+          <p className="text-xs text-muted-foreground">{exerciseLabel} · Personalize your thresholds</p>
         </div>
       </div>
 
